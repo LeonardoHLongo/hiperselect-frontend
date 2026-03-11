@@ -2,7 +2,7 @@
  * Hook customizado para monitorar status do WhatsApp em tempo real via SSE
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 type WhatsAppStatus = 'online' | 'offline' | 'connecting' | 'error';
 type StatusReason = string;
@@ -21,6 +21,7 @@ export function useWhatsAppStatus(token: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [hasReceivedInitialStatus, setHasReceivedInitialStatus] = useState(false);
+  const reconnectAttemptsRef = useRef(0);
 
   useEffect(() => {
     if (!token) {
@@ -35,7 +36,6 @@ export function useWhatsAppStatus(token: string | null) {
 
     let eventSource: EventSource | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;
-    let reconnectAttempts = 0;
     const maxReconnectAttempts = 5;
     const baseReconnectDelay = 3000; // 3 segundos
 
@@ -51,7 +51,7 @@ export function useWhatsAppStatus(token: string | null) {
           console.log('[useWhatsAppStatus] ✅ Conectado ao stream de status');
           setIsConnected(true);
           setError(null);
-          reconnectAttempts = 0;
+          reconnectAttemptsRef.current = 0;
         };
 
         eventSource.onmessage = (event) => {
@@ -85,10 +85,10 @@ export function useWhatsAppStatus(token: string | null) {
           setError(new Error('Erro na conexão com o servidor'));
 
           // Tentar reconectar
-          if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectAttempts++;
-            const delay = baseReconnectDelay * Math.pow(2, reconnectAttempts - 1); // Exponential backoff
-            console.log(`[useWhatsAppStatus] 🔄 Tentando reconectar em ${delay}ms (tentativa ${reconnectAttempts}/${maxReconnectAttempts})`);
+          if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+            reconnectAttemptsRef.current++;
+            const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current - 1); // Exponential backoff
+            console.log(`[useWhatsAppStatus] 🔄 Tentando reconectar em ${delay}ms (tentativa ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
             
             reconnectTimeout = setTimeout(() => {
               if (eventSource) {
@@ -123,7 +123,7 @@ export function useWhatsAppStatus(token: string | null) {
   const reconnect = useCallback(() => {
     // Forçar reconexão fechando e recriando
     setError(null);
-    reconnectAttempts = 0;
+    reconnectAttemptsRef.current = 0;
   }, []);
 
   return {
