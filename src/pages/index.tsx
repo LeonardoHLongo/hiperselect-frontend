@@ -105,7 +105,13 @@ export default function Dashboard() {
 
         // Buscar informações das conversas para obter o nome do cliente
         const conversationIds = [...new Set(sortedTickets.map((t: any) => t.conversationId).filter(Boolean))];
-        const conversationPromises = conversationIds.map(async (convId) => {
+        
+        type ConversationResult = {
+          conversationId: string;
+          conversation: any;
+        };
+        
+        const conversationPromises = conversationIds.map(async (convId: string): Promise<ConversationResult | null> => {
           try {
             const res = await fetch(`${API_BASE}/api/v1/conversations/${convId}`, { headers });
             const data = await res.json();
@@ -121,7 +127,7 @@ export default function Dashboard() {
         const conversationResults = await Promise.all(conversationPromises);
         const conversationsMap: Record<string, any> = {};
         conversationResults.forEach((result) => {
-          if (result) {
+          if (result !== null) {
             conversationsMap[result.conversationId] = result.conversation;
           }
         });
