@@ -132,7 +132,8 @@ export default function ConversationsPage() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    // Reduzir polling de 5s para 15s para melhorar performance
+    const interval = setInterval(fetchData, 15000);
 
     return () => clearInterval(interval);
   }, [token]);

@@ -110,7 +110,8 @@ export default function TicketsPage() {
       markAsViewed();
       
       fetchTickets();
-      const interval = setInterval(fetchTickets, 5000);
+      // Reduzir polling de 5s para 15s para melhorar performance
+      const interval = setInterval(fetchTickets, 15000);
 
       return () => clearInterval(interval);
     } else {
@@ -118,7 +119,7 @@ export default function TicketsPage() {
     }
   }, [token]);
 
-  // Buscar informações das conversas
+  // Buscar informações das conversas (OTIMIZADO: batch request ao invés de N+1)
   useEffect(() => {
     const fetchConversations = async () => {
       if (!token || tickets.length === 0) return;
@@ -126,39 +127,36 @@ export default function TicketsPage() {
       try {
         const headers: HeadersInit = {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         };
 
         const conversationIds = [...new Set(tickets.map(t => t.conversationId))];
-        const conversationPromises = conversationIds.map(async (convId) => {
-          try {
-            const res = await fetch(`${API_BASE}/api/v1/conversations/${convId}`, { headers });
-            const data = await res.json();
-            if (data.success) {
-              return { conversationId: convId, conversation: data.data };
-            }
-          } catch (error) {
-            console.error(`Error fetching conversation ${convId}:`, error);
-    }
-          return null;
-        });
-
-        const results = await Promise.all(conversationPromises);
-        const conversationsMap: Record<string, ConversationInfo> = {};
         
-        results.forEach((result) => {
-          if (result) {
-            conversationsMap[result.conversationId] = {
-              conversationId: result.conversationId,
-              sender: result.conversation.sender,
-            };
-          }
+        // Usar endpoint batch ao invés de múltiplas requisições
+        const res = await fetch(`${API_BASE}/api/v1/conversations/batch`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ ids: conversationIds }),
         });
+        
+        const data = await res.json();
+        
+        if (data.success && Array.isArray(data.data)) {
+          const conversationsMap: Record<string, ConversationInfo> = {};
+          
+          data.data.forEach((conv: any) => {
+            conversationsMap[conv.conversationId] = {
+              conversationId: conv.conversationId,
+              sender: conv.sender,
+            };
+          });
 
-        setConversations(conversationsMap);
+          setConversations(conversationsMap);
+        }
       } catch (error) {
         console.error('Error fetching conversations:', error);
-    }
-  };
+      }
+    };
 
     fetchConversations();
   }, [token, tickets]);

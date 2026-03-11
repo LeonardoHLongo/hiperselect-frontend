@@ -624,10 +624,7 @@ export default function ConversationDetailPage() {
     }
   };
 
-  // Scroll para a última mensagem
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  // Scroll automático removido - usuário controla o scroll manualmente
 
   // Determinar se a mensagem é do sistema (enviada por nós)
   const isFromSystem = (message: Message): boolean => {
