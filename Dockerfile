@@ -15,11 +15,10 @@ COPY . .
 # Criar diretório public se não existir (Next.js standalone precisa dele)
 RUN mkdir -p public
 
-# IMPORTANTE: Variáveis NEXT_PUBLIC_* precisam estar disponíveis durante o build
-# Railway passa variáveis de ambiente automaticamente, mas precisamos garantir que sejam acessíveis
-# Usar --build-arg para passar durante o build, ou ENV para runtime (Railway faz isso automaticamente)
-# O Next.js lê process.env.NEXT_PUBLIC_* durante o build, então as variáveis devem estar no ambiente
-RUN echo "Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-not-set}"
+# IMPORTANTE: Variáveis NEXT_PUBLIC_* são injetadas no BUILD TIME
+# Railway passa variáveis de ambiente automaticamente, mas precisamos garantir que estejam disponíveis
+# Se a variável não estiver disponível durante o build, usar placeholder que será substituído em runtime
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-__NEXT_PUBLIC_API_URL__}
 
 RUN npm run build
 
@@ -37,11 +36,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copiar e configurar entrypoint para substituir variáveis em runtime
+COPY --chown=nextjs:nodejs docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
 
 ENV PORT 3000
 
+# Usar entrypoint para injetar variáveis antes de iniciar o servidor
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
 

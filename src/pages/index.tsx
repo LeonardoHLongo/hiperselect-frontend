@@ -21,7 +21,10 @@ type RecentTicket = {
   createdAt: number;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Usar placeholder que será substituído em runtime se a variável não estiver disponível no build
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL === '__NEXT_PUBLIC_API_URL__' || !process.env.NEXT_PUBLIC_API_URL) 
+  ? 'http://localhost:3001' 
+  : process.env.NEXT_PUBLIC_API_URL;
 
 // Mock data para o gráfico (7 dias)
 const generateMockChartData = () => {
