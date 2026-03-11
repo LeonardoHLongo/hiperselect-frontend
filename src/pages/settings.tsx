@@ -33,8 +33,8 @@ export default function SettingsPage() {
 
   // Helper para fazer requisições com autenticação
   const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
-    const headers: HeadersInit = {
-      ...options.headers,
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> || {}),
     };
     // Só adiciona Content-Type se houver body (e não foi especificado manualmente)
     if (options.body && (!options.headers || !('Content-Type' in options.headers))) {

@@ -104,7 +104,11 @@ export default function Dashboard() {
           .slice(0, 5) || [];
 
         // Buscar informações das conversas para obter o nome do cliente
-        const conversationIds: string[] = [...new Set(sortedTickets.map((t: any) => t.conversationId).filter((id): id is string => Boolean(id)))];
+        const conversationIds = [...new Set(
+          sortedTickets
+            .map((t: any) => t.conversationId as string | undefined)
+            .filter((id: string | undefined): id is string => typeof id === 'string' && id.length > 0)
+        )] as string[];
         
         type ConversationResult = {
           conversationId: string;
