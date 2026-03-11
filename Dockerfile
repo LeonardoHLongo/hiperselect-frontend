@@ -15,6 +15,12 @@ COPY . .
 # Criar diretório public se não existir (Next.js standalone precisa dele)
 RUN mkdir -p public
 
+# IMPORTANTE: Variáveis NEXT_PUBLIC_* precisam estar disponíveis durante o build
+# Railway passa variáveis de ambiente automaticamente, mas precisamos garantir que sejam acessíveis
+# Usar --build-arg para passar durante o build, ou ENV para runtime (Railway faz isso automaticamente)
+# O Next.js lê process.env.NEXT_PUBLIC_* durante o build, então as variáveis devem estar no ambiente
+RUN echo "Building with NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-not-set}"
+
 RUN npm run build
 
 FROM node:20-alpine AS runner
